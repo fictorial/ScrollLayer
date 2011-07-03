@@ -14,8 +14,7 @@
 // The virtual region is the entire layer and is thus defined
 // by the CCNode properties position and contentSize.
 //
-// The visible "window" is defined by a rectangle in layer-space
-// called visibleRect.
+// The visible "window" is defined by a rectangle called visibleRect.
 //
 // By default, the entire window is used as both the visible rect and 
 // virtual region.
