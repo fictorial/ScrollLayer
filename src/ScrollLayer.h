@@ -19,7 +19,7 @@
 // By default, the entire window is used as both the visible rect and 
 // virtual region.
 
-@interface ScrollLayer : CCLayerColor {
+@interface ScrollLayer : CCLayer {
   CGRect visibleRect;
   id <ScrollLayerDelegate> scrollDelegate;
   BOOL scrollingEnabled;
