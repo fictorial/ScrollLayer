@@ -4,6 +4,9 @@
 
 @protocol ScrollLayerDelegate <NSObject>
 - (void)scrollLayerDidScroll:(ScrollLayer *)scrollLayer;
+- (void)scrollLayerWillBeginDragging:(ScrollLayer *)scrollLayer;
+- (void)scrollLayerDidEndDragging:(ScrollLayer *)scrollLayer willDecelerate:(BOOL)willDecelerate;
+- (void)scrollLayerWillBeginDecelerating:(ScrollLayer *)scrollLayer;
 @end
 
 // A ScrollLayer is a CCLayer that provides a visible "window"
@@ -19,17 +22,35 @@
 // By default, the entire window is used as both the visible rect and 
 // virtual region.
 
+// Things that are unsupported include:
+// - bouncing
+// - zooming
+// - scroll lock to one direction
+// - scroll bars / indicators
+// - arbitrary deceleration rate (e.g. normal, fast)
+// - scroll to "top" (by tapping status bar)
+
 @interface ScrollLayer : CCLayer {
   CGRect visibleRect;
+  BOOL clipsToBounds;
   id <ScrollLayerDelegate> scrollDelegate;
   BOOL scrollingEnabled;
   NSTimeInterval prevTimestamp;
   CGFloat velocity;
   CGPoint direction;
+  CGPoint destinationPoint;
+  BOOL movingToPoint;
 }
 
 @property (nonatomic, assign) CGRect visibleRect;
+@property (nonatomic, assign) BOOL clipsToBounds;
 @property (nonatomic, assign) id <ScrollLayerDelegate> scrollDelegate;
 @property (nonatomic, assign) BOOL scrollingEnabled;
+
+// Moves the scroll layer such that the given point is at the visibleRect origin.
+// If not animated, the layer position change is instant. Else, a constant velocity
+// is set to move the layer over the course of 2 seconds.
+
+- (void)setContentOffset:(CGPoint)contentOffset animated:(BOOL)animated;
 
 @end

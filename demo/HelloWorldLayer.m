@@ -19,9 +19,17 @@ static const CGFloat blockSize = 50;
   return aSprite;
 }
 
+- (void)_doSampleMove:(ccTime)dt {
+  ScrollLayer *scrollLayer = (ScrollLayer *)[self getChildByTag:999];
+  CGSize winSize = [[CCDirector sharedDirector] winSize];
+  [scrollLayer setContentOffset:ccp(winSize.width/2, winSize.height/2) animated:YES];
+  [[CCScheduler sharedScheduler] unscheduleSelector:_cmd forTarget:self];
+}
+
 - (id)init {
 	if ((self = [super initWithColor:ccc4(192,192,192,255)])) {
     ScrollLayer *scrollLayer = [ScrollLayer node];
+    scrollLayer.tag = 999;
     
     CGSize winSize = [[CCDirector sharedDirector] winSize];
     
@@ -48,6 +56,8 @@ static const CGFloat blockSize = 50;
     [self addChild:aSprite];
 
     [self addChild:scrollLayer];
+    
+    [[CCScheduler sharedScheduler] scheduleSelector:@selector(_doSampleMove:) forTarget:self interval:3.0 paused:NO];
 	}
   
 	return self;

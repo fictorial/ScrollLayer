@@ -3,14 +3,19 @@
 
 #define kMinVelocity 3.0
 #define kDecelerationRate 0.95
+#define kMinDistanceForScrollingSquared (3*3)
+#define kSetContentOffsetDuration 2
 
 @interface ScrollLayer ()
-- (void)decelerate:(ccTime)dt;
+- (void)_decelerate:(ccTime)dt;
+- (CGPoint)_constrainPoint:(CGPoint)p;
+- (void)_moveBy:(CGPoint)dx;
+- (void)_moveTo:(CGPoint)newPos animated:(BOOL)animated;
 @end
 
 @implementation ScrollLayer
 
-@synthesize visibleRect, scrollDelegate, scrollingEnabled;
+@synthesize visibleRect, clipsToBounds, scrollDelegate, scrollingEnabled;
 
 // FYI default anchor point is (0,0) so node space has origin in
 // lower-left corner with X to the right and Y upwards.
@@ -22,33 +27,21 @@
     self.visibleRect = (CGRect) { .origin = CGPointZero, .size = defaultSize };
     self.contentSize  = defaultSize;
     self.scrollingEnabled = YES;
+    self.clipsToBounds = YES;
   }
   return self;
 }
 
-- (CGPoint)_constrainPoint:(CGPoint)p {
-  CGFloat visibleLeft   = self.visibleRect.origin.x;
-  CGFloat visibleBottom = self.visibleRect.origin.y;
-  CGFloat visibleRight  = self.visibleRect.origin.x + self.visibleRect.size.width;
-  CGFloat visibleTop    = self.visibleRect.origin.y + self.visibleRect.size.height;
-
-  CGFloat virtualWidth  = self.contentSize.width;
-  CGFloat virtualHeight = self.contentSize.height;
-
-  if (p.x > visibleLeft)   p.x = visibleLeft;
-  if (p.y > visibleBottom) p.y = visibleBottom;
-
-  if (p.x + virtualWidth  < visibleRight) p.x = visibleRight - virtualWidth;
-  if (p.y + virtualHeight < visibleTop)   p.y = visibleTop   - virtualHeight;
-
-  return p;
-}
+#pragma mark clipping
 
 // Clip children nodes to the visible rect. {before,after}VisitChildren is defined in
 // a CCNode category. Note: OpenGL works in pixels not iOS logical "points" hence the
 // scaling here.
 
 - (void)beforeVisitChildren {
+  if (!clipsToBounds)
+    return;  
+  
   CGFloat scaleToPixels = [[CCDirector sharedDirector] contentScaleFactor];
 
   glEnable(GL_SCISSOR_TEST);
@@ -60,8 +53,13 @@
 }
 
 - (void)afterVisitChildren {
+  if (!clipsToBounds)
+    return;  
+
   glDisable(GL_SCISSOR_TEST);
 }
+
+#pragma mark touch handler registration
 
 - (void)onEnter {
   [[CCTouchDispatcher sharedDispatcher] addTargetedDelegate:self priority:0 swallowsTouches:YES];
@@ -71,10 +69,13 @@
   [[CCTouchDispatcher sharedDispatcher] removeDelegate:self];
 }
 
+#pragma mark touch handling
+
 - (void)_clearTrackingState {
   prevTimestamp = 0;
   direction = CGPointZero;
   velocity = 0;
+  destinationPoint = CGPointZero;
 }
 
 - (BOOL)ccTouchBegan:(UITouch *)touch withEvent:(UIEvent *)event {
@@ -97,27 +98,43 @@
 
   CGPoint touchPoint     = [[CCDirector sharedDirector] convertToGL:[touch locationInView:touch.view]];
   CGPoint touchPointPrev = [[CCDirector sharedDirector] convertToGL:[touch previousLocationInView:touch.view]];
+  
+  CGPoint dx = ccpSub(touchPoint, touchPointPrev);
 
-  if (prevTimestamp == 0)
+  if (ccpLengthSQ(dx) < kMinDistanceForScrollingSquared)
+    return;
+
+  if (prevTimestamp == 0) {
     prevTimestamp = touch.timestamp;
+    [self.scrollDelegate scrollLayerWillBeginDragging:self];
+  }
 
   CGFloat dt = touch.timestamp - prevTimestamp;
-  if (dt == 0) return;
+  
+  if (dt == 0) 
+    return;
 
   prevTimestamp = touch.timestamp;
   direction     = ccpSub(touchPoint, touchPointPrev);
   velocity      = ccpLength(direction) / dt;
   direction     = ccpNormalize(direction);
 
-  self.position = [self _constrainPoint:ccpAdd(self.position, ccpSub(touchPoint, touchPointPrev))];
-
-  [scrollDelegate scrollLayerDidScroll:self];
+  [self _moveBy:ccpSub(touchPoint, touchPointPrev)];  
 }
 
 - (void)ccTouchEnded:(UITouch *)touch withEvent:(UIEvent *)event {
-  if (self.visible && self.scrollingEnabled && velocity > kMinVelocity) {
-    [[CCScheduler sharedScheduler] unscheduleSelector:@selector(decelerate:) forTarget:self];
-    [[CCScheduler sharedScheduler] scheduleSelector:@selector(decelerate:) forTarget:self interval:0 paused:NO];
+  if (!self.visible || !self.scrollingEnabled)
+    return;
+  
+  if (velocity > kMinVelocity) {
+    [self.scrollDelegate scrollLayerDidEndDragging:self willDecelerate:YES];
+    [self.scrollDelegate scrollLayerWillBeginDecelerating:self];
+
+    [[CCScheduler sharedScheduler] unscheduleSelector:@selector(_decelerate:) forTarget:self];
+    [[CCScheduler sharedScheduler] scheduleSelector:@selector(_decelerate:) forTarget:self interval:0 paused:NO];
+  } else {
+    [self.scrollDelegate scrollLayerDidEndDragging:self willDecelerate:NO];
+    [self _clearTrackingState];
   }
 }
 
@@ -125,12 +142,69 @@
   [self _clearTrackingState];
 }
 
-- (void)decelerate:(ccTime)dt {
+#pragma mark internal
+
+- (void)_decelerate:(ccTime)dt {
   self.position = [self _constrainPoint:ccpAdd(self.position, ccpMult(direction, velocity * dt))];
   [self.scrollDelegate scrollLayerDidScroll:self];
+  
+  if (movingToPoint) {
+    if (ccpDistance(destinationPoint, self.position) <= 1) {
+      [[CCScheduler sharedScheduler] unscheduleSelector:@selector(_decelerate:) forTarget:self];
+      [self _clearTrackingState];
+    }
+  } else if ((velocity *= kDecelerationRate) < kMinVelocity) {
+    [[CCScheduler sharedScheduler] unscheduleSelector:@selector(_decelerate:) forTarget:self];
+    [self _clearTrackingState];
+  }
+}
 
-  if ((velocity *= kDecelerationRate) < kMinVelocity)
-    [[CCScheduler sharedScheduler] unscheduleSelector:@selector(decelerate:) forTarget:self];
+- (CGPoint)_constrainPoint:(CGPoint)p {
+  CGFloat visibleLeft   = self.visibleRect.origin.x;
+  CGFloat visibleBottom = self.visibleRect.origin.y;
+  CGFloat visibleRight  = self.visibleRect.origin.x + self.visibleRect.size.width;
+  CGFloat visibleTop    = self.visibleRect.origin.y + self.visibleRect.size.height;
+  
+  CGFloat virtualWidth  = self.contentSize.width;
+  CGFloat virtualHeight = self.contentSize.height;
+  
+  if (p.x > visibleLeft)   p.x = visibleLeft;
+  if (p.y > visibleBottom) p.y = visibleBottom;
+  
+  if (p.x + virtualWidth  < visibleRight) p.x = visibleRight - virtualWidth;
+  if (p.y + virtualHeight < visibleTop)   p.y = visibleTop   - virtualHeight;
+  
+  return p;
+}
+
+- (void)_moveBy:(CGPoint)dx {
+  self.position = [self _constrainPoint:ccpAdd(self.position, dx)];
+  [scrollDelegate scrollLayerDidScroll:self];
+}
+
+- (void)_moveTo:(CGPoint)newPos animated:(BOOL)animated {
+  self.position = [self _constrainPoint:newPos];
+  [scrollDelegate scrollLayerDidScroll:self];
+}
+
+#pragma mark public api
+
+- (void)setContentOffset:(CGPoint)contentOffset animated:(BOOL)animated {
+  CGPoint dx = ccpSub(self.visibleRect.origin, contentOffset);
+
+  if (animated) {
+    movingToPoint = YES;
+    destinationPoint = [self _constrainPoint:ccpAdd(self.position, dx)];
+    
+    direction = ccpNormalize(dx);
+    velocity  = ccpLength(dx) / kSetContentOffsetDuration;
+    
+    [[CCScheduler sharedScheduler] unscheduleSelector:@selector(_decelerate:) forTarget:self];
+    [[CCScheduler sharedScheduler] scheduleSelector:@selector(_decelerate:) forTarget:self interval:0 paused:NO];
+  } else {
+    movingToPoint = NO;
+    [self _moveBy:dx];
+  }
 }
 
 @end
