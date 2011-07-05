@@ -9,6 +9,14 @@
 - (void)scrollLayerWillBeginDecelerating:(ScrollLayer *)scrollLayer;
 @end
 
+enum {
+  kScrollLayerDirectionLockNone,
+  kScrollLayerDirectionLockHorizontal,
+  kScrollLayerDirectionLockVertical
+};
+
+typedef NSUInteger ScrollLayerDirectionLock;
+
 // A ScrollLayer is a CCLayer that provides a visible "window"
 // into a larger virtual region.  Finger swipes allow the 
 // virtual region to be panned which simulates scrolling inside
@@ -25,7 +33,7 @@
 // Things that are unsupported include:
 // - bouncing
 // - zooming
-// - scroll lock to one direction
+// - paging
 // - scroll bars / indicators
 // - arbitrary deceleration rate (e.g. normal, fast)
 // - scroll to "top" (by tapping status bar)
@@ -40,12 +48,14 @@
   CGPoint direction;
   CGPoint destinationPoint;
   BOOL movingToPoint;
+  ScrollLayerDirectionLock directionLock;
 }
 
 @property (nonatomic, assign) CGRect visibleRect;
 @property (nonatomic, assign) BOOL clipsToBounds;
 @property (nonatomic, assign) id <ScrollLayerDelegate> scrollDelegate;
 @property (nonatomic, assign) BOOL scrollingEnabled;
+@property (nonatomic, assign) ScrollLayerDirectionLock directionLock;
 
 // Moves the scroll layer such that the given point is at the visibleRect origin.
 // If not animated, the layer position change is instant. Else, a constant velocity

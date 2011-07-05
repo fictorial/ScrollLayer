@@ -15,7 +15,7 @@
 
 @implementation ScrollLayer
 
-@synthesize visibleRect, clipsToBounds, scrollDelegate, scrollingEnabled;
+@synthesize visibleRect, clipsToBounds, scrollDelegate, scrollingEnabled, directionLock;
 
 // FYI default anchor point is (0,0) so node space has origin in
 // lower-left corner with X to the right and Y upwards.
@@ -101,6 +101,23 @@
   CGPoint touchPointPrev = [[CCDirector sharedDirector] convertToGL:[touch previousLocationInView:touch.view]];
   
   CGPoint dx = ccpSub(touchPoint, touchPointPrev);
+  
+  switch (directionLock) {
+    case kScrollLayerDirectionLockNone:
+      break;
+      
+    case kScrollLayerDirectionLockHorizontal:
+      dx.y = 0;
+      break;
+      
+    case kScrollLayerDirectionLockVertical:
+      dx.x = 0;
+      break;
+      
+    default:
+      NSAssert(NO, @"unhandled direction lock");
+      break;
+  }
 
   if (ccpLengthSQ(dx) < kMinDistanceForScrollingSquared)
     return;
@@ -116,11 +133,11 @@
     return;
 
   prevTimestamp = touch.timestamp;
-  direction     = ccpSub(touchPoint, touchPointPrev);
+  direction     = dx;
   velocity      = ccpLength(direction) / dt;
   direction     = ccpNormalize(direction);
 
-  [self _moveBy:ccpSub(touchPoint, touchPointPrev)];  
+  [self _moveBy:dx];  
 }
 
 - (void)ccTouchEnded:(UITouch *)touch withEvent:(UIEvent *)event {

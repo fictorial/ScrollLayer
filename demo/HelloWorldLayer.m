@@ -38,6 +38,8 @@ static const CGFloat blockSize = 50;
     scrollLayer.position    = CGPointZero;
     scrollLayer.contentSize = winSize;
     
+    scrollLayer.directionLock = kScrollLayerDirectionLockVertical;
+    
     // visible rect is a window into the virtual region.
 
     scrollLayer.visibleRect = CGRectMake(winSize.width/4, winSize.height/4, winSize.width/2, winSize.height/2);
