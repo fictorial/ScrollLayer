@@ -23,7 +23,7 @@ static const CGFloat blockSize = 50;
   ScrollLayer *scrollLayer = (ScrollLayer *)[self getChildByTag:999];
   CGSize winSize = [[CCDirector sharedDirector] winSize];
   [scrollLayer setContentOffset:ccp(winSize.width/2, winSize.height/2) animated:YES];
-  [[CCScheduler sharedScheduler] unscheduleSelector:_cmd forTarget:self];
+  [[CCScheduler sharedScheduler] unscheduleAllSelectorsForTarget:self];
 }
 
 - (id)init {
