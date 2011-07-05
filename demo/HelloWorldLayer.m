@@ -38,7 +38,8 @@ static const CGFloat blockSize = 50;
     scrollLayer.position    = CGPointZero;
     scrollLayer.contentSize = winSize;
     
-    // scrollLayer.directionLock = kScrollLayerDirectionLockVertical;
+//    scrollLayer.directionLock = kScrollLayerDirectionLockHorizontal;
+//    scrollLayer.clipsToBounds = NO;
     
     // visible rect is a window into the virtual region.
 
@@ -59,7 +60,7 @@ static const CGFloat blockSize = 50;
 
     [self addChild:scrollLayer];
     
-    [[CCScheduler sharedScheduler] scheduleSelector:@selector(_doSampleMove:) forTarget:self interval:3.0 paused:NO];
+//    [[CCScheduler sharedScheduler] scheduleSelector:@selector(_doSampleMove:) forTarget:self interval:3.0 paused:NO];
 	}
   
 	return self;

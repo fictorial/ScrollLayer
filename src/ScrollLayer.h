@@ -39,23 +39,34 @@ typedef NSUInteger ScrollLayerDirectionLock;
 // - scroll to "top" (by tapping status bar)
 
 @interface ScrollLayer : CCLayer {
+  BOOL scrollingEnabled;
+  id <ScrollLayerDelegate> scrollDelegate;
+
   CGRect visibleRect;
   BOOL clipsToBounds;
-  id <ScrollLayerDelegate> scrollDelegate;
-  BOOL scrollingEnabled;
+  
+  CGPoint dragStartPoint;
   NSTimeInterval prevTimestamp;
   CGFloat velocity;
   CGPoint direction;
-  CGPoint destinationPoint;
-  BOOL movingToPoint;
+
+  CGPoint autoMoveToPoint;
+  BOOL autoMoving;
+  
   ScrollLayerDirectionLock directionLock;
+  
+  BOOL dragging;
 }
+
+@property (nonatomic, assign) BOOL scrollingEnabled;
+@property (nonatomic, assign) id <ScrollLayerDelegate> scrollDelegate;
 
 @property (nonatomic, assign) CGRect visibleRect;
 @property (nonatomic, assign) BOOL clipsToBounds;
-@property (nonatomic, assign) id <ScrollLayerDelegate> scrollDelegate;
-@property (nonatomic, assign) BOOL scrollingEnabled;
+
 @property (nonatomic, assign) ScrollLayerDirectionLock directionLock;
+
+@property (nonatomic, assign, readonly, getter=isDragging) BOOL dragging;
 
 // Moves the scroll layer such that the given point is at the visibleRect origin.
 // If not animated, the layer position change is instant. Else, a constant velocity
