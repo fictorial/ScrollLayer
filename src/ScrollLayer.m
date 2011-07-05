@@ -76,6 +76,7 @@
   direction = CGPointZero;
   velocity = 0;
   destinationPoint = CGPointZero;
+  movingToPoint = NO;
 }
 
 - (BOOL)ccTouchBegan:(UITouch *)touch withEvent:(UIEvent *)event {
@@ -148,12 +149,15 @@
   self.position = [self _constrainPoint:ccpAdd(self.position, ccpMult(direction, velocity * dt))];
   [self.scrollDelegate scrollLayerDidScroll:self];
   
+  BOOL shouldStop = NO;
+  
   if (movingToPoint) {
-    if (ccpDistance(destinationPoint, self.position) <= 1) {
-      [[CCScheduler sharedScheduler] unscheduleSelector:@selector(_decelerate:) forTarget:self];
-      [self _clearTrackingState];
-    }
-  } else if ((velocity *= kDecelerationRate) < kMinVelocity) {
+    shouldStop = (ccpDistance(destinationPoint, self.position) <= 1);
+  } else {
+    shouldStop = ((velocity *= kDecelerationRate) < kMinVelocity);
+  }
+
+  if (shouldStop) {
     [[CCScheduler sharedScheduler] unscheduleSelector:@selector(_decelerate:) forTarget:self];
     [self _clearTrackingState];
   }
