@@ -5,7 +5,7 @@ A scrollable layer for cocos2d-iphone apps.
 ## Features
 
 - scrolling in 2D;
-- velocity;
+- velocity ("inertial scrolling");
 - clipping (your layer doesn't have to use the entire window bounds).
 
 ## Compatibility
