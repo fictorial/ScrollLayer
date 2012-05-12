@@ -2,6 +2,9 @@
 
 A scrollable layer for cocos2d-iphone apps.
 
+**This is very simple and does not do much. I recommend you use
+[https://github.com/cocos2d/cocos2d-iphone-extensions/tree/master/Extensions/CCScrollLayer](CCScrollLayer) instead for real work.**
+
 ## Features
 
 - scrolling in 2D;
