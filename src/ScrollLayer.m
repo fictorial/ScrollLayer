@@ -63,10 +63,12 @@
 #pragma mark touch handler registration
 
 - (void)onEnter {
+  [super onEnter];
   [[CCTouchDispatcher sharedDispatcher] addTargetedDelegate:self priority:0 swallowsTouches:YES];
 }
 
 - (void)onExit {
+  [super onExit];
   [[CCTouchDispatcher sharedDispatcher] removeDelegate:self];
 }
 
