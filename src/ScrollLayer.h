@@ -10,9 +10,9 @@
 @end
 
 enum {
-  kScrollLayerDirectionLockNone,
-  kScrollLayerDirectionLockHorizontal,
-  kScrollLayerDirectionLockVertical
+    kScrollLayerDirectionLockNone,
+    kScrollLayerDirectionLockHorizontal,
+    kScrollLayerDirectionLockVertical
 };
 
 typedef NSUInteger ScrollLayerDirectionLock;
@@ -39,23 +39,23 @@ typedef NSUInteger ScrollLayerDirectionLock;
 // - scroll to "top" (by tapping status bar)
 
 @interface ScrollLayer : CCLayer {
-  BOOL scrollingEnabled;
-  id <ScrollLayerDelegate> scrollDelegate;
-
-  CGRect visibleRect;
-  BOOL clipsToBounds;
-  
-  CGPoint dragStartPoint;
-  NSTimeInterval prevTimestamp;
-  CGFloat velocity;
-  CGPoint direction;
-
-  CGPoint autoMoveToPoint;
-  BOOL autoMoving;
-  
-  ScrollLayerDirectionLock directionLock;
-  
-  BOOL dragging;
+    BOOL scrollingEnabled;
+    id <ScrollLayerDelegate> scrollDelegate;
+    
+    CGRect visibleRect;
+    BOOL clipsToBounds;
+    
+    CGPoint dragStartPoint;
+    NSTimeInterval prevTimestamp;
+    CGFloat velocity;
+    CGPoint direction;
+    
+    CGPoint autoMoveToPoint;
+    BOOL autoMoving;
+    
+    ScrollLayerDirectionLock directionLock;
+    
+    BOOL dragging;
 }
 
 @property (nonatomic, assign) BOOL scrollingEnabled;
